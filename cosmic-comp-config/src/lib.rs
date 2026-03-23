@@ -104,6 +104,9 @@ pub struct CosmicCompConfig {
     /// Briefly magnify the cursor when the pointer is shaken, to help locate it
     pub cursor_shake_to_find: bool,
     pub activation_policy: ActivationPolicy,
+    /// Per-output max pixel width for a single tiled window. When only one
+    /// window is tiled, it is constrained to this width and centered.
+    pub single_tile_max_widths: Vec<workspace::SingleTileMaxWidthEntry>,
 }
 
 impl Default for CosmicCompConfig {
@@ -143,6 +146,7 @@ impl Default for CosmicCompConfig {
             cursor_hide_timeout: None,
             cursor_shake_to_find: true,
             activation_policy: ActivationPolicy::default(),
+            single_tile_max_widths: Vec::new(),
         }
     }
 }
