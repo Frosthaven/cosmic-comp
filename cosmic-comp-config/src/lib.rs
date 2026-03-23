@@ -112,6 +112,9 @@ pub struct CosmicCompConfig {
     pub cursor_shake_to_find: bool,
     pub activation_policy: ActivationPolicy,
     pub decoration_preference: DecorationPreference,
+    /// Per-output max pixel width for a single tiled window. When only one
+    /// window is tiled, it is constrained to this width and centered.
+    pub single_tile_max_widths: Vec<workspace::SingleTileMaxWidthEntry>,
 }
 
 impl Default for CosmicCompConfig {
@@ -152,6 +155,7 @@ impl Default for CosmicCompConfig {
             cursor_shake_to_find: true,
             activation_policy: ActivationPolicy::default(),
             decoration_preference: DecorationPreference::default(),
+            single_tile_max_widths: Vec::new(),
         }
     }
 }
