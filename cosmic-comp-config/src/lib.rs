@@ -99,6 +99,9 @@ pub struct CosmicCompConfig {
     pub edge_snap_threshold: u32,
     pub accessibility_zoom: ZoomConfig,
     pub appearance_settings: AppearanceConfig,
+    /// Per-output max pixel width for a single tiled window. When only one
+    /// window is tiled, it is constrained to this width and centered.
+    pub single_tile_max_widths: Vec<workspace::SingleTileMaxWidthEntry>,
 }
 
 impl Default for CosmicCompConfig {
@@ -135,6 +138,7 @@ impl Default for CosmicCompConfig {
             edge_snap_threshold: 0,
             accessibility_zoom: ZoomConfig::default(),
             appearance_settings: AppearanceConfig::default(),
+            single_tile_max_widths: Vec::new(),
         }
     }
 }

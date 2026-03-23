@@ -5,7 +5,10 @@ use indexmap::IndexMap;
 use layout::TilingExceptions;
 use std::{
     collections::HashMap,
-    sync::{Mutex, atomic::Ordering},
+    sync::{
+        Mutex,
+        atomic::{AtomicU32, Ordering},
+    },
     thread,
     time::{Duration, Instant},
 };
@@ -729,6 +732,23 @@ impl WorkspaceSet {
     }
 }
 
+/// Per-output max width for single tiled windows, stored on Output user_data.
+pub(crate) struct SingleTileMaxWidth(pub AtomicU32);
+
+impl SingleTileMaxWidth {
+    fn set(output: &Output, max_width: u32) {
+        output
+            .user_data()
+            .insert_if_missing_threadsafe(|| SingleTileMaxWidth(AtomicU32::new(0)));
+        output
+            .user_data()
+            .get::<SingleTileMaxWidth>()
+            .unwrap()
+            .0
+            .store(max_width, Ordering::Relaxed);
+    }
+}
+
 #[derive(Debug)]
 pub struct Workspaces {
     pub sets: IndexMap<Output, WorkspaceSet>,
@@ -741,6 +761,7 @@ pub struct Workspaces {
     appearance: AppearanceConfig,
     // Persisted workspace to add on first `output_add`
     persisted_workspaces: Vec<PinnedWorkspace>,
+    single_tile_max_widths: Vec<cosmic_comp_config::workspace::SingleTileMaxWidthEntry>,
 }
 
 impl Workspaces {
@@ -755,6 +776,7 @@ impl Workspaces {
             theme,
             appearance: config.cosmic_conf.appearance_settings,
             persisted_workspaces: config.cosmic_conf.pinned_workspaces.clone(),
+            single_tile_max_widths: config.cosmic_conf.single_tile_max_widths.clone(),
         }
     }
 
@@ -825,6 +847,11 @@ impl Workspaces {
                 workspace_state.add_workspace_state(&workspace.handle, WState::Active);
             }
         }
+        // Apply single tile max width for this output
+        if let Some(entry) = self.single_tile_max_widths.iter().find(|e| e.output == output.name()) {
+            SingleTileMaxWidth::set(output, entry.max_width);
+        }
+
         self.sets.insert(output.clone(), set);
     }
 
@@ -1281,6 +1308,25 @@ impl Workspaces {
     pub fn len(&self, output: &Output) -> usize {
         let set = self.sets.get(output).unwrap();
         set.workspaces.len()
+    }
+
+    pub fn update_single_tile_max_widths(
+        &mut self,
+        entries: Vec<cosmic_comp_config::workspace::SingleTileMaxWidthEntry>,
+    ) {
+        self.single_tile_max_widths = entries;
+        for (output, set) in self.sets.iter_mut() {
+            let max_w = self
+                .single_tile_max_widths
+                .iter()
+                .find(|e| e.output == output.name())
+                .map(|e| e.max_width)
+                .unwrap_or(0);
+            SingleTileMaxWidth::set(output, max_w);
+            for workspace in set.workspaces.iter_mut() {
+                workspace.tiling_layer.recalculate();
+            }
+        }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&Output, &WorkspaceSet)> {
