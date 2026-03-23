@@ -65,7 +65,10 @@ use smithay::{
 };
 use std::{
     collections::{HashMap, VecDeque},
-    sync::{Arc, Weak},
+    sync::{
+        Arc, Weak,
+        atomic::Ordering,
+    },
     time::{Duration, Instant},
 };
 use tracing::trace;
@@ -75,6 +78,7 @@ mod blocker;
 mod grabs;
 pub use self::blocker::*;
 pub use self::grabs::*;
+
 
 pub const ANIMATION_DURATION: Duration = Duration::from_millis(200);
 pub const MINIMIZE_ANIMATION_DURATION: Duration = Duration::from_millis(320);
@@ -3009,6 +3013,23 @@ impl TilingLayout {
             geo.loc.y += outer;
             geo.size.w -= outer * 2;
             geo.size.h -= outer * 2;
+
+            // Constrain single tiled window to max width and center
+            if let Some(max_w) = output
+                .user_data()
+                .get::<crate::shell::SingleTileMaxWidth>()
+                .map(|v| v.0.load(Ordering::Relaxed))
+                .filter(|&v| v > 0)
+            {
+                let max_w = max_w as i32;
+                if let Ok(ch) = tree.children(root_id) {
+                    if ch.count() == 0 && geo.size.w > max_w {
+                        geo.loc.x += (geo.size.w - max_w) / 2;
+                        geo.size.w = max_w;
+                    }
+                }
+            }
+
             let mut stack = vec![geo];
 
             for node_id in tree

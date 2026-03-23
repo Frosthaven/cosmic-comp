@@ -48,3 +48,9 @@ pub struct PinnedWorkspace {
     pub id: Option<String>,
     // TODO: name
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SingleTileMaxWidthEntry {
+    pub output: String,
+    pub max_width: u32,
+}

@@ -888,6 +888,16 @@ fn config_changed(config: cosmic_config::Config, keys: Vec<String>, state: &mut 
                     );
                 }
             }
+            "single_tile_max_widths" => {
+                let new = get_config::<Vec<cosmic_comp_config::workspace::SingleTileMaxWidthEntry>>(
+                    &config, "single_tile_max_widths"
+                );
+                if new != state.common.config.cosmic_conf.single_tile_max_widths {
+                    state.common.config.cosmic_conf.single_tile_max_widths = new.clone();
+                    let mut shell = state.common.shell.write();
+                    shell.workspaces.update_single_tile_max_widths(new);
+                }
+            }
             "active_hint" => {
                 let new = get_config::<bool>(&config, "active_hint");
                 if new != state.common.config.cosmic_conf.active_hint {
